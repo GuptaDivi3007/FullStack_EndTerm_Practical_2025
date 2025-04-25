@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Book App</title>
+</head>
+<body>
+  <h1>Book App</h1>
+
+  <form id="bookForm">
+    <input type="hidden" id="bookId">
+    <input type="text" id="title" placeholder="Title" required>
+    <input type="text" id="author" placeholder="Author" required>
+    <input type="date" id="publishedOn" required>
+    <input type="text" id="genre" placeholder="Genre" required>
+    <input type="number" id="rating" placeholder="Rating" required>
+    <button type="submit">Save Book</button>
+  </form>
+
+  <h2>All Books</h2>
+  <ul id="bookList"></ul>
+
+  <script>
+    const form = document.getElementById('bookForm');
+    const bookList = document.getElementById('bookList');
+    let books = [];
+
+    async function fetchBooks() {
+      const res = await fetch('/api/books');
+      books = await res.json();
+      renderBooks();
+    }
+
+    function renderBooks() {
+      bookList.innerHTML = '';
+      books.forEach(book => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          ${book.title} by ${book.author} | ${book.genre} | Rating: ${book.rating} | 
+          <button onclick="editBook('${book._id}')">Edit</button>
+          <button onclick="deleteBook('${book._id}')">Delete</button>
+        `;
+        bookList.appendChild(li);
+      });
+    }
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const book = {
+        title: form.title.value,
+        author: form.author.value,
+        publishedOn: form.publishedOn.value,
+        genre: form.genre.value,
+        rating: form.rating.value,
+      };
+
+      const id = form.bookId.value;
+
+      if (id) {
+        await fetch(`/api/books/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(book)
+        });
+      } else {
+        await fetch('/api/books', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(book)
+        });
+      }
+
+      form.reset();
+      fetchBooks();
+    };
+
+    function editBook(id) {
+      const book = books.find(b => b._id === id);
+      form.bookId.value = book._id;
+      form.title.value = book.title;
+      form.author.value = book.author;
+      form.publishedOn.value = book.publishedOn.split('T')[0];
+      form.genre.value = book.genre;
+      form.rating.value = book.rating;
+    }
+
+    async function deleteBook(id) {
+      await fetch(`/api/books/${id}`, { method: 'DELETE' });
+      fetchBooks();
+    }
+
+    fetchBooks();
+  </script>
+</body>
+</html>
+
